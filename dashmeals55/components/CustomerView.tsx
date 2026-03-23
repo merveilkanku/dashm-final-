@@ -4,6 +4,7 @@ import {
   LogOut, Navigation, Search, X, Receipt, Phone, Info, Image as ImageIcon, 
   PlayCircle, Settings, Moon, Sun, Globe, CheckCircle, CheckCircle2, Star, Type, Clock, Bell 
 } from 'lucide-react';
+import { Geolocation } from '@capacitor/geolocation';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { KINSHASA_CENTER_LAT, KINSHASA_CENTER_LNG, CITIES_RDC, APP_LOGO_URL } from '../constants';
@@ -150,32 +151,35 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
       }
   };
 
-  // Geolocation Function
-  const refreshLocation = () => {
+  // Geolocation Function using Capacitor
+  const refreshLocation = async () => {
     setUserState(prev => ({ ...prev, loadingLocation: true, locationError: null }));
     
-    if (!navigator.geolocation) {
-      setUserState({
-        location: null,
-        locationError: "La géolocalisation n'est pas supportée par votre navigateur",
-        loadingLocation: false
-      });
-      return;
-    }
+    try {
+        const permissions = await Geolocation.checkPermissions();
+        if (permissions.location !== 'granted') {
+            const request = await Geolocation.requestPermissions();
+            if (request.location !== 'granted') {
+                throw new Error("Permission de localisation refusée");
+            }
+        }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserState({
-          location: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          },
-          locationError: null,
-          loadingLocation: false
+        const position = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 10000
         });
-      },
-      (error) => {
-        console.warn("Geo error:", error);
+
+        setUserState({
+            location: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            },
+            locationError: null,
+            loadingLocation: false
+        });
+    } catch (error: any) {
+        console.warn("Native Geo error:", error);
+
         // Fallback to IP geolocation if GPS fails
         fetch('https://ipapi.co/json/')
           .then(res => res.json())
@@ -203,9 +207,7 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 loadingLocation: false
             });
           });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    }
   };
 
   // Initial Geolocation

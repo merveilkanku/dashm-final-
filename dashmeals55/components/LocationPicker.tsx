@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { Geolocation } from '@capacitor/geolocation';
 import { MapPin, Crosshair, Loader, AlertCircle, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -146,83 +147,52 @@ export const LocationPicker: React.FC<Props> = ({
     setError(null);
   };
 
-  // Fonction pour détecter la position GPS (pour mobile uniquement)
-  const locateUser = () => {
+  // Fonction pour détecter la position GPS utilisant Capacitor
+  const locateUser = async () => {
     setIsLocating(true);
     setError(null);
     setLocationStatus('🔍 Activation du GPS...');
     
-    if (!('geolocation' in navigator)) {
-      const errorMsg = "❌ GPS non supporté. Veuillez sélectionner manuellement sur la carte.";
-      setError(errorMsg);
-      setLocationStatus(errorMsg);
-      toast.error(errorMsg);
-      setIsLocating(false);
-      return;
-    }
-    
-    // Vérifier si c'est un mobile (avec GPS réel)
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (!isMobile) {
-      toast.info("💡 Sur ordinateur, la position par IP peut être imprécise. Cliquez directement sur la carte pour sélectionner Lubumbashi.");
-      setLocationStatus("💡 Sur ordinateur, utilisez la carte pour sélectionner Lubumbashi");
-      setIsLocating(false);
-      return;
-    }
-    
-    // Options pour mobile
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
-    };
-    
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+    try {
+        const permissions = await Geolocation.checkPermissions();
+        if (permissions.location !== 'granted') {
+            const request = await Geolocation.requestPermissions();
+            if (request.location !== 'granted') {
+                throw new Error("Permission GPS refusée. Activez la localisation.");
+            }
+        }
+
+        const pos = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 15000
+        });
+
         const { latitude, longitude, accuracy } = pos.coords;
-        
-        console.log("📍 Position GPS mobile:", latitude, longitude);
+        console.log("📍 Position GPS native:", latitude, longitude);
         
         const { address, city, country } = await fetchAddress(latitude, longitude);
         const newPos = { lat: latitude, lng: longitude, address, city, country };
         
         setPosition(newPos);
         setMapCenter([latitude, longitude]);
-        setLocationStatus(`✅ Position GPS: ${city} (précision: ${Math.round(accuracy)}m)`);
+        setLocationStatus(`✅ Position GPS: ${city} (précision: ${Math.round(accuracy || 0)}m)`);
         
         onLocationSelect(newPos);
         toast.success(`📍 ${city} - Votre position GPS`);
-        setIsLocating(false);
-      },
-      (err) => {
-        console.error("GPS error:", err);
-        let errorMessage = "";
-        switch(err.code) {
-          case err.PERMISSION_DENIED:
-            errorMessage = "❌ Permission GPS refusée. Activez la localisation.";
-            break;
-          case err.POSITION_UNAVAILABLE:
-            errorMessage = "❌ Signal GPS indisponible.";
-            break;
-          case err.TIMEOUT:
-            errorMessage = "⏱️ Délai GPS dépassé.";
-            break;
-          default:
-            errorMessage = "❌ Impossible d'obtenir la position GPS.";
-        }
+    } catch (err: any) {
+        console.error("Native GPS error:", err);
+        const errorMessage = err.message || "❌ Impossible d'obtenir la position GPS.";
         setError(errorMessage);
         setLocationStatus(errorMessage);
         toast.error(errorMessage);
-        setIsLocating(false);
         
         // Proposer Lubumbashi
         setTimeout(() => {
           toast.info("💡 Utilisez le bouton 'Lubumbashi' ou cliquez sur la carte");
         }, 2000);
-      },
-      options
-    );
+    } finally {
+        setIsLocating(false);
+    }
   };
 
   // Fonction pour aller à une ville spécifique

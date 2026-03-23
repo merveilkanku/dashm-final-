@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { APP_LOGO_URL } from './constants';
 import { Restaurant, MenuItem, User, Order, OrderStatus, Promotion, Theme, Language, AppFont } from './types';
 import { 
@@ -194,6 +195,28 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
 };
 
 
+// Helper for native image selection
+const selectNativeImage = async (): Promise<File | null> => {
+    try {
+        const image = await Camera.getPhoto({
+            quality: 90,
+            allowEditing: true,
+            resultType: CameraResultType.Uri,
+            source: CameraSource.Prompt // Asks user to take photo or choose from gallery
+        });
+
+        if (image.webPath) {
+            const response = await fetch(image.webPath);
+            const blob = await response.blob();
+            return new File([blob], `photo_${Date.now()}.${image.format}`, { type: `image/${image.format}` });
+        }
+        return null;
+    } catch (error) {
+        console.error("Camera error:", error);
+        return null;
+    }
+};
+
 // Fonction spécifique pour uploader les documents de vérification
 const uploadVerificationDocument = async (file: File, type: 'id_card' | 'business_license'): Promise<string | null> => {
     try {
@@ -299,9 +322,12 @@ const uploadVerificationDocument = async (file: File, type: 'id_card' | 'busines
       setIsRefreshing(false);
   };
 
-// UPLOAD HELPER FUNCTION - CORRIGÉE (sans vérification de session problématique)
-const uploadImage = async (file: File, bucket: string = 'images'): Promise<string | null> => {
+// UPLOAD HELPER FUNCTION - Native Compatibility
+const uploadImage = async (fileOrBlob: File | Blob, bucket: string = 'images'): Promise<string | null> => {
     try {
+        // Convert Blob to File if needed (Capacitor returns Blobs)
+        const file = fileOrBlob instanceof File ? fileOrBlob : new File([fileOrBlob], `upload_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
         // Vérifier la taille du fichier
         let maxSize = 50 * 1024 * 1024; // 50MB par défaut
         let allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg'];
@@ -1316,12 +1342,23 @@ const uploadImage = async (file: File, bucket: string = 'images'): Promise<strin
             <div className="md:col-span-2">
                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo du plat</label>
                  <div className="flex items-center space-x-2">
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            const file = await selectNativeImage();
+                            if (file) setNewItemImageFile(file);
+                        }}
+                        className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow-md hover:bg-brand-700"
+                    >
+                        <ImageIcon size={16} className="mr-2"/>
+                        {newItemImageFile ? 'Photo Changée' : '📸 Appareil / Galerie'}
+                    </button>
                     <label className="cursor-pointer bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center">
                         <Upload size={16} className="mr-2"/>
-                        {newItemImageFile ? 'Photo sélectionnée' : 'Choisir une photo'}
+                        Fichier
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => setNewItemImageFile(e.target.files?.[0] || null)} />
                     </label>
-                    {newItemImageFile && <span className="text-xs text-brand-600">{newItemImageFile.name}</span>}
+                    {newItemImageFile && <span className="text-xs text-brand-600 truncate max-w-[100px]">{newItemImageFile.name}</span>}
                  </div>
             </div>
 
@@ -1759,11 +1796,24 @@ const uploadImage = async (file: File, bucket: string = 'images'): Promise<strin
                     onChange={e => setSettingsForm({ ...settingsForm, coverImage: e.target.value })}
                     placeholder="URL ou Upload"
                   />
-                   <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600">
-                        <Upload size={16} className="mr-2"/>
-                        {coverImageFile ? 'Image sélectionnée' : 'Uploader une image'}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
-                    </label>
+                   <div className="flex space-x-2">
+                       <button
+                            type="button"
+                            onClick={async () => {
+                                const file = await selectNativeImage();
+                                if (file) setCoverImageFile(file);
+                            }}
+                            className="flex-1 bg-brand-600 text-white px-4 py-2 rounded-lg font-bold flex items-center justify-center shadow-md hover:bg-brand-700"
+                       >
+                            <ImageIcon size={16} className="mr-2"/>
+                            {coverImageFile ? 'Photo prête' : '📸 Prendre/Choisir'}
+                       </button>
+                       <label className="flex-1 cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                            <Upload size={16} className="mr-2"/>
+                            Fichier
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
+                        </label>
+                   </div>
               </div>
             </div>
 
@@ -1969,13 +2019,29 @@ const uploadImage = async (file: File, bucket: string = 'images'): Promise<strin
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport</label>
-                            <input 
-                                type="file" 
-                                accept="image/*"
-                                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                                onChange={e => setIdCardFile(e.target.files?.[0] || null)}
-                                disabled={restaurant.verificationStatus === 'pending'}
-                            />
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const file = await selectNativeImage();
+                                        if (file) setIdCardFile(file);
+                                    }}
+                                    className="flex-1 p-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-600"
+                                    disabled={restaurant.verificationStatus === 'pending'}
+                                >
+                                    {idCardFile ? `✅ ${idCardFile.name}` : '📸 Prendre ou choisir une photo'}
+                                </button>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    id="id-card-input"
+                                    onChange={e => setIdCardFile(e.target.files?.[0] || null)}
+                                />
+                                <label htmlFor="id-card-input" className="p-3 bg-gray-100 dark:bg-gray-600 rounded-lg cursor-pointer">
+                                    <Upload size={16} />
+                                </label>
+                            </div>
                         </div>
                         {restaurant.verificationStatus !== 'pending' && (
                             <button 
@@ -2378,23 +2444,51 @@ const uploadImage = async (file: File, bucket: string = 'images'): Promise<strin
                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{t('media_file_url')}</label>
                         
                         <div className="mb-3">
-                             <label className={`cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-4 rounded-xl font-bold flex flex-col items-center justify-center border-dashed border-2 ${promoFile ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
-                                <Upload size={24} className={`mb-2 ${promoFile ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}/>
-                                <span className="text-sm">{promoFile ? promoFile.name : (newPromoType === 'video' ? t('upload_video') : t('upload_image'))}</span>
-                                <input 
-                                    type="file" 
-                                    accept={newPromoType === 'video' ? "video/*" : "image/*"} 
-                                    className="hidden" 
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            setPromoFile(file);
-                                            setNewPromoUrl(''); // Clear URL if file selected
-                                            setPromoError(null);
+                             <div className="grid grid-cols-1 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (newPromoType === 'video') {
+                                            // Camera plugin doesn't support video well in some versions/platforms, fallback to input
+                                            const input = document.createElement('input');
+                                            input.type = 'file';
+                                            input.accept = 'video/*';
+                                            input.onchange = (e) => {
+                                                const file = (e.target as HTMLInputElement).files?.[0];
+                                                if (file) setPromoFile(file);
+                                            };
+                                            input.click();
+                                        } else {
+                                            const file = await selectNativeImage();
+                                            if (file) setPromoFile(file);
                                         }
-                                    }} 
-                                />
-                            </label>
+                                    }}
+                                    className={`p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-white dark:bg-gray-800 ${promoFile ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-300 dark:border-gray-600'}`}
+                                >
+                                    {newPromoType === 'video' ? <Video size={24} className="mb-2 text-purple-500"/> : <ImageIcon size={24} className="mb-2 text-purple-500"/>}
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        {promoFile ? promoFile.name : (newPromoType === 'video' ? '📽️ Sélectionner Vidéo' : '📸 Prendre/Choisir Photo')}
+                                    </span>
+                                </button>
+
+                                <label className={`cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl font-bold flex items-center justify-center text-xs`}>
+                                    <Upload size={14} className="mr-2"/>
+                                    Uploader un fichier spécifique
+                                    <input
+                                        type="file"
+                                        accept={newPromoType === 'video' ? "video/*" : "image/*"}
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setPromoFile(file);
+                                                setNewPromoUrl('');
+                                                setPromoError(null);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                             </div>
                         </div>
 
                         {/* PREVIEW SECTION */}

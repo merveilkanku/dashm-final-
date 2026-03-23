@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap, AlertCircle, MapPin } from 'lucide-react';
+import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap, AlertCircle, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { toast } from 'sonner';
 import { Order, OrderStatus } from '../types';
 import { supabase } from '../lib/supabase';
@@ -22,6 +23,27 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
   const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
   const pastOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
   const displayedOrders = activeTab === 'active' ? activeOrders : pastOrders;
+
+  const selectNativeImage = async (): Promise<File | null> => {
+    try {
+        const image = await CapCamera.getPhoto({
+            quality: 90,
+            allowEditing: true,
+            resultType: CameraResultType.Uri,
+            source: CameraSource.Prompt
+        });
+
+        if (image.webPath) {
+            const response = await fetch(image.webPath);
+            const blob = await response.blob();
+            return new File([blob], `proof_${Date.now()}.${image.format}`, { type: `image/${image.format}` });
+        }
+        return null;
+    } catch (error) {
+        console.error("Camera error:", error);
+        return null;
+    }
+  };
 
   const handleReuploadPaymentProof = async (orderId: string, file: File) => {
       try {
@@ -279,19 +301,31 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                         <AlertCircle size={14} className="mr-1" />
                                         {order.paymentStatus === 'failed' ? "La preuve de paiement a été refusée. Veuillez en renvoyer une nouvelle." : "Vous pouvez modifier votre preuve de paiement si nécessaire."}
                                     </p>
-                                    <label className={`flex items-center justify-center w-full py-2 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-300 hover:bg-red-100 text-red-600' : 'border-blue-300 hover:bg-blue-100 text-blue-600'}`}>
-                                        <Camera size={16} className="mr-2" />
-                                        {order.paymentStatus === 'failed' ? "Uploader une nouvelle preuve" : "Changer la preuve de paiement"}
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            className="hidden" 
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={async () => {
+                                                const file = await selectNativeImage();
                                                 if (file) handleReuploadPaymentProof(order.id, file);
-                                            }} 
-                                        />
-                                    </label>
+                                            }}
+                                            className={`flex-1 flex items-center justify-center py-2 px-4 border-2 border-dashed rounded-lg transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-400 bg-red-100/50 text-red-700' : 'border-blue-400 bg-blue-100/50 text-blue-700'}`}
+                                        >
+                                            <ImageIcon size={16} className="mr-2" />
+                                            📸 Appareil / Galerie
+                                        </button>
+                                        <label className={`flex items-center justify-center py-2 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-300 hover:bg-red-100 text-red-600' : 'border-blue-300 hover:bg-blue-100 text-blue-600'}`}>
+                                            <Camera size={16} className="mr-2" />
+                                            Fichier
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) handleReuploadPaymentProof(order.id, file);
+                                                }}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             )}
 
@@ -459,20 +493,26 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                         {/* Preuve Photo */}
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Photo du plat (Preuve)</label>
-                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                                {proofFile ? (
-                                    <div className="text-center">
-                                        <p className="text-green-600 font-bold text-xs truncate max-w-[200px]">{proofFile.name}</p>
-                                        <p className="text-gray-400 text-[10px]">Cliquez pour changer</p>
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-gray-400">
-                                        <Camera size={24} className="mx-auto mb-1" />
-                                        <p className="text-xs">Ajouter une photo</p>
-                                    </div>
-                                )}
-                                <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                            </label>
+                            <div className="grid grid-cols-1 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const file = await selectNativeImage();
+                                        if (file) setProofFile(file);
+                                    }}
+                                    className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl transition-colors ${proofFile ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}
+                                >
+                                    <ImageIcon size={24} className={proofFile ? 'text-green-600' : 'text-gray-400'} />
+                                    <p className={`text-[10px] font-bold mt-1 ${proofFile ? 'text-green-700' : 'text-gray-500'}`}>
+                                        {proofFile ? `✅ ${proofFile.name}` : '📸 Appareil / Galerie'}
+                                    </p>
+                                </button>
+                                <label className="flex items-center justify-center w-full py-2 border border-gray-200 rounded-lg cursor-pointer bg-gray-50 text-[10px] font-bold text-gray-500">
+                                    <Camera size={14} className="mr-2" />
+                                    Choisir un fichier
+                                    <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                                </label>
+                            </div>
                         </div>
 
                         <button 
