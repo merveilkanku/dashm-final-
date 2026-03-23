@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { supabase, isDefaultProject } from '../lib/supabase';
 import { User, UserRole, BusinessType } from '../types';
 import { CITIES_RDC, APP_LOGO_URL } from '../constants';
@@ -93,13 +95,34 @@ export const AuthScreen: React.FC<Props> = ({ onLogin, isSupabaseReachable = tru
           city,
       }));
 
-      const currentOrigin = window.location.origin;
+      let currentOrigin = window.location.origin;
+      const isNative = Capacitor.isNativePlatform();
+
+      if (isNative) {
+          // On mobile, use the custom deep link scheme
+          currentOrigin = 'com.dashmeals.android://login-callback';
+      }
+
       console.log("OAuth Redirect URL:", currentOrigin);
 
       // Detect if we are in the AI Studio preview
-      const isPreview = currentOrigin.includes('.run.app');
+      const isPreview = !isNative && currentOrigin.includes('.run.app');
 
-      if (isPreview) {
+      if (isNative) {
+          // On Android/iOS, use Browser plugin for a better experience
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: provider,
+            options: {
+              redirectTo: currentOrigin,
+              skipBrowserRedirect: true,
+            }
+          });
+
+          if (error) throw error;
+          if (data?.url) {
+              await Browser.open({ url: data.url, windowName: '_self' });
+          }
+      } else if (isPreview) {
           // In preview (iframe), we MUST use a popup
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: provider,

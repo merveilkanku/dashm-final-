@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { supabase } from './lib/supabase';
 import { MOCK_RESTAURANTS } from './constants';
 import { Restaurant, User, UserRole, MenuItem, BusinessType, Theme, Language, AppFont } from './types';
@@ -109,6 +110,25 @@ function App() {
     };
 
     initSession();
+
+    // Handle deep links for OAuth redirects on native platforms
+    CapApp.addListener('appUrlOpen', async (event: any) => {
+        const url = new URL(event.url);
+        // Supabase OAuth returns tokens in the hash
+        const hash = url.hash.substring(1);
+        const params = new URLSearchParams(hash);
+
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+            });
+            if (error) console.error("Error setting session from deep link:", error.message);
+        }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
