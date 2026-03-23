@@ -1847,19 +1847,19 @@ const uploadImage = async (fileOrBlob: File | Blob, bucket: string = 'images'): 
 
           <button
             type="button"
-            onClick={() => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((position) => {
-                        setSettingsForm({
-                            ...settingsForm,
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        });
-                    }, (err) => {
-                        toast.error("Erreur de géolocalisation: " + err.message);
+            onClick={async () => {
+                try {
+                    const position = await (await import('@capacitor/geolocation')).Geolocation.getCurrentPosition({
+                        enableHighAccuracy: true
                     });
-                } else {
-                    toast.error("La géolocalisation n'est pas supportée par votre navigateur.");
+                    setSettingsForm({
+                        ...settingsForm,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                    toast.success("Position récupérée !");
+                } catch (err: any) {
+                    toast.error("Erreur de géolocalisation: " + err.message);
                 }
             }}
             className="w-full py-3 px-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-sm flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
