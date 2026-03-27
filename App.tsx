@@ -12,8 +12,7 @@ import { AlertTriangle, Store, ArrowRight } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { App as CapApp } from '@capacitor/app';
-import { Geolocation } from '@capacitor/geolocation';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { requestAllPermissions } from './utils/permissions';
 
 const OfflineBanner = ({ isSupabaseReachable }: { isSupabaseReachable: boolean }) => (!isSupabaseReachable) ? (
   <div className="bg-red-600 text-white text-xs font-bold px-4 py-1 text-center flex justify-center items-center sticky top-0 z-50">
@@ -78,6 +77,9 @@ function App() {
 
   // Initialisation et écoute de la session
   useEffect(() => {
+    // Request permissions on mount for native app
+    requestAllPermissions();
+
     // Capacitor Deep Link Listener
     const setupDeepLinks = () => {
       CapApp.addListener('appUrlOpen', async (data) => {
