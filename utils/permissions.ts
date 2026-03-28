@@ -18,8 +18,12 @@ export const requestAllPermissions = async () => {
         console.log("Camera permission:", camPerm.camera);
 
         // Notifications
-        const notifPerm = await PushNotifications.requestPermissions();
-        console.log("Notifications permission:", notifPerm.receive);
+        try {
+            const notifPerm = await PushNotifications.requestPermissions();
+            console.log("Notifications permission:", notifPerm.receive);
+        } catch (e) {
+            console.warn("Notifications permission request failed (likely missing google-services.json):", e);
+        }
 
     } catch (error) {
         console.error("Error requesting permissions:", error);
