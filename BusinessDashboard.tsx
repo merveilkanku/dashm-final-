@@ -15,6 +15,7 @@ import { useTranslation } from './lib/i18n';
 import { requestNotificationPermission, sendPushNotification } from './utils/notifications';
 import { PinSetupDialog } from './components/PinSetupDialog';
 import { toast } from 'sonner';
+import { pickImage, pickFile } from './utils/native';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 interface Props {
@@ -1852,11 +1853,17 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
             <div className="md:col-span-2">
                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo du plat</label>
                  <div className="flex items-center space-x-2">
-                    <label className="cursor-pointer bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center">
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            const file = await pickImage();
+                            if (file) setNewItemImageFile(file);
+                        }}
+                        className="cursor-pointer bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center"
+                    >
                         <Upload size={16} className="mr-2"/>
                         {newItemImageFile ? 'Photo sélectionnée' : 'Choisir une photo'}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => setNewItemImageFile(e.target.files?.[0] || null)} />
-                    </label>
+                    </button>
                     {newItemImageFile && <span className="text-xs text-brand-600">{newItemImageFile.name}</span>}
                  </div>
             </div>
@@ -2026,14 +2033,19 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport</label>
-                            <input 
-                                type="file" 
-                                accept="image/*"
-                                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                                onChange={e => setIdCardFile(e.target.files?.[0] || null)}
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport (ou PDF)</label>
+                            <button
+                                type="button"
                                 disabled={restaurant.verificationStatus === 'pending'}
-                            />
+                                onClick={async () => {
+                                    const file = await pickFile();
+                                    if (file) setIdCardFile(file);
+                                }}
+                                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-gray-700 dark:text-white font-bold flex items-center justify-center bg-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                            >
+                                <Upload size={18} className="mr-2"/>
+                                {idCardFile ? 'Document sélectionné' : 'Choisir un fichier'}
+                            </button>
                         </div>
                         {restaurant.verificationStatus !== 'pending' && (
                             <button 
@@ -2955,11 +2967,17 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                                     onChange={e => setSettingsForm({ ...settingsForm, coverImage: e.target.value })}
                                     placeholder="URL ou Upload"
                                 />
-                                <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const file = await pickImage();
+                                        if (file) setCoverImageFile(file);
+                                    }}
+                                    className="w-full cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-lg font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600"
+                                >
                                     <Upload size={16} className="mr-2"/>
                                     {coverImageFile ? 'Image sélectionnée' : 'Uploader une image'}
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
-                                </label>
+                                </button>
                             </div>
                         </div>
 
@@ -4012,23 +4030,30 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{t('media_file_url')}</label>
                         
                         <div className="mb-3">
-                             <label className={`cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-4 rounded-xl font-bold flex flex-col items-center justify-center border-dashed border-2 ${promoFile ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
-                                <Upload size={24} className={`mb-2 ${promoFile ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}/>
-                                <span className="text-sm">{promoFile ? promoFile.name : (newPromoType === 'video' ? t('upload_video') : t('upload_image'))}</span>
-                                <input 
-                                    type="file" 
-                                    accept={newPromoType === 'video' ? "video/*" : "image/*"} 
-                                    className="hidden" 
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
+                             <button
+                                type="button"
+                                onClick={async () => {
+                                    if (newPromoType === 'image') {
+                                        const file = await pickImage();
                                         if (file) {
                                             setPromoFile(file);
                                             setNewPromoUrl('');
                                             setPromoError(null);
                                         }
-                                    }} 
-                                />
-                            </label>
+                                    } else {
+                                        const file = await pickFile(); // Support video/general files
+                                        if (file) {
+                                            setPromoFile(file);
+                                            setNewPromoUrl('');
+                                            setPromoError(null);
+                                        }
+                                    }
+                                }}
+                                className={`w-full cursor-pointer bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-4 rounded-xl font-bold flex flex-col items-center justify-center border-dashed border-2 ${promoFile ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}
+                             >
+                                <Upload size={24} className={`mb-2 ${promoFile ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}/>
+                                <span className="text-sm">{promoFile ? promoFile.name : (newPromoType === 'video' ? t('upload_video') : t('upload_image'))}</span>
+                            </button>
                         </div>
 
                         {(promoFile || newPromoUrl) && (

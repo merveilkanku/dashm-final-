@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap, AlertCircle, MapPin, Navigation } from 'lucide-react';
+import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap, AlertCircle, MapPin, Navigation, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { pickFile } from '../utils/native';
 import { Order, OrderStatus, Restaurant } from '../types';
 import { supabase } from '../lib/supabase';
 import { DeliveryTrackingMap } from './DeliveryTrackingMap';
@@ -283,19 +284,17 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                         <AlertCircle size={14} className="mr-1" />
                                         {order.paymentStatus === 'failed' ? "La preuve de paiement a été refusée. Veuillez en renvoyer une nouvelle." : "Vous pouvez modifier votre preuve de paiement si nécessaire."}
                                     </p>
-                                    <label className={`flex items-center justify-center w-full py-2 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-300 hover:bg-red-100 text-red-600' : 'border-blue-300 hover:bg-blue-100 text-blue-600'}`}>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const file = await pickFile();
+                                            if (file) handleReuploadPaymentProof(order.id, file);
+                                        }}
+                                        className={`flex items-center justify-center w-full py-2 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-300 hover:bg-red-100 text-red-600' : 'border-blue-300 hover:bg-blue-100 text-blue-600'}`}
+                                    >
                                         <Camera size={16} className="mr-2" />
                                         {order.paymentStatus === 'failed' ? "Uploader une nouvelle preuve" : "Changer la preuve de paiement"}
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            className="hidden" 
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) handleReuploadPaymentProof(order.id, file);
-                                            }} 
-                                        />
-                                    </label>
+                                    </button>
                                 </div>
                             )}
 
@@ -484,20 +483,26 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                         {/* Preuve Photo */}
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Photo du plat (Preuve)</label>
-                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const file = await pickFile();
+                                    if (file) setProofFile(file);
+                                }}
+                                className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors bg-white"
+                            >
                                 {proofFile ? (
-                                    <div className="text-center">
+                                    <div className="text-center px-4">
                                         <p className="text-green-600 font-bold text-xs truncate max-w-[200px]">{proofFile.name}</p>
                                         <p className="text-gray-400 text-[10px]">Cliquez pour changer</p>
                                     </div>
                                 ) : (
                                     <div className="text-center text-gray-400">
-                                        <Camera size={24} className="mx-auto mb-1" />
+                                        <Upload size={24} className="mx-auto mb-1" />
                                         <p className="text-xs">Ajouter une photo</p>
                                     </div>
                                 )}
-                                <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                            </label>
+                            </button>
                         </div>
 
                         <button 

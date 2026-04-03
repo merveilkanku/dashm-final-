@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, CreditCard, Banknote, ArrowLeft, Phone, CheckCircle2, Smartphone, MapPin, Map, Camera } from 'lucide-react';
+import { X, Trash2, ShoppingBag, CreditCard, Banknote, ArrowLeft, Phone, CheckCircle2, Smartphone, MapPin, Map, Camera, Upload } from 'lucide-react';
 import { CartItem, RestaurantPaymentConfig, PaymentMethod, MobileMoneyNetwork } from '../types';
 import { LocationPicker } from './LocationPicker';
+import { pickImage, pickFile } from '../utils/native';
 
 interface Props {
   isOpen: boolean;
@@ -335,7 +336,20 @@ export const CartDrawer: React.FC<Props> = ({
                         <label className="block text-sm font-bold text-gray-900 mb-1">Preuve de paiement</label>
                         <p className="text-xs text-gray-500 mb-3">Joignez une capture d'écran du message de confirmation.</p>
                         
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors bg-white">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const file = await pickFile(); // Support both images and PDFs
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setPaymentProof(reader.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors bg-white overflow-hidden"
+                        >
                           {paymentProof ? (
                             <div className="relative w-full h-full p-2">
                               <img src={paymentProof} alt="Preuve" className="w-full h-full object-contain rounded-lg" />
@@ -345,26 +359,11 @@ export const CartDrawer: React.FC<Props> = ({
                             </div>
                           ) : (
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                              <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                              <Upload className="w-8 h-8 text-gray-400 mb-2" />
                               <p className="text-sm text-gray-500 font-medium">Cliquez pour uploader</p>
                             </div>
                           )}
-                          <input 
-                            type="file" 
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setPaymentProof(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                          />
-                        </label>
+                        </button>
                       </div>
                     </div>
                   )}
