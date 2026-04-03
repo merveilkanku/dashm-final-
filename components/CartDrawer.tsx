@@ -339,7 +339,7 @@ export const CartDrawer: React.FC<Props> = ({
                         <button
                           type="button"
                           onClick={async () => {
-                            const file = await pickFile(); // Support both images and PDFs
+                            const file = await pickImage();
                             if (file) {
                               const reader = new FileReader();
                               reader.onloadend = () => {

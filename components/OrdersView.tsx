@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap, AlertCircle, MapPin, Navigation, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { pickFile } from '../utils/native';
+import { pickImage } from '../utils/native';
 import { Order, OrderStatus, Restaurant } from '../types';
 import { supabase } from '../lib/supabase';
 import { DeliveryTrackingMap } from './DeliveryTrackingMap';
@@ -287,7 +287,7 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                     <button
                                         type="button"
                                         onClick={async () => {
-                                            const file = await pickFile();
+                                            const file = await pickImage();
                                             if (file) handleReuploadPaymentProof(order.id, file);
                                         }}
                                         className={`flex items-center justify-center w-full py-2 px-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-xs font-bold ${order.paymentStatus === 'failed' ? 'border-red-300 hover:bg-red-100 text-red-600' : 'border-blue-300 hover:bg-blue-100 text-blue-600'}`}
@@ -486,7 +486,7 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                             <button
                                 type="button"
                                 onClick={async () => {
-                                    const file = await pickFile();
+                                    const file = await pickImage();
                                     if (file) setProofFile(file);
                                 }}
                                 className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors bg-white"

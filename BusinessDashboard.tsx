@@ -2033,18 +2033,18 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport (ou PDF)</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport</label>
                             <button
                                 type="button"
                                 disabled={restaurant.verificationStatus === 'pending'}
                                 onClick={async () => {
-                                    const file = await pickFile();
+                                    const file = await pickImage();
                                     if (file) setIdCardFile(file);
                                 }}
                                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-gray-700 dark:text-white font-bold flex items-center justify-center bg-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
                             >
                                 <Upload size={18} className="mr-2"/>
-                                {idCardFile ? 'Document sélectionné' : 'Choisir un fichier'}
+                                {idCardFile ? 'Photo sélectionnée' : 'Choisir une photo'}
                             </button>
                         </div>
                         {restaurant.verificationStatus !== 'pending' && (
