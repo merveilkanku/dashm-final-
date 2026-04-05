@@ -16,6 +16,23 @@ export const AuthScreen: React.FC<Props> = ({ onLogin, isSupabaseReachable = tru
   const [isLogin, setIsLogin] = useState(true);
   const [isStaffMode, setIsStaffMode] = useState(false);
   const [role, setRole] = useState<UserRole>('client');
+
+  // Handle external auth actions (like "Become Delivery Person")
+  useEffect(() => {
+    const pendingAction = localStorage.getItem('dashmeals_auth_action');
+    if (pendingAction) {
+      try {
+        const { mode, role: targetRole } = JSON.parse(pendingAction);
+        if (mode === 'signup') setIsLogin(false);
+        if (targetRole) setRole(targetRole);
+
+        // Clear the action so it doesn't repeat on refresh
+        localStorage.removeItem('dashmeals_auth_action');
+      } catch (err) {
+        console.error("Error parsing pending auth action", err);
+      }
+    }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   

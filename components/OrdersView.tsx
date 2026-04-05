@@ -542,10 +542,7 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                         </div>
                                     )}
                                 </button>
-                                <input id="confirm-proof-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) setProofFile(file);
-                                }} />
+                                <input id="confirm-proof-upload" type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
                             </div>
                         </div>
 

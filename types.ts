@@ -64,7 +64,7 @@ export interface Restaurant {
   createdAt?: string; // Date de création du compte
   settings?: SecuritySettings;
   // Verification fields
-  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  verificationStatus?: 'unverified' | 'requested' | 'pending' | 'verified' | 'rejected';
   verificationDocs?: {
     idCardUrl?: string;
     registryNumber?: string;
