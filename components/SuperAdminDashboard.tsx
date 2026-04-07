@@ -287,6 +287,26 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
       }
   };
 
+  const requestVerification = async (restoId: string) => {
+      if (!confirm("Envoyer une demande de vérification à ce restaurant ?")) return;
+
+      setLoading(true);
+      try {
+          const { error } = await supabase.from('restaurants').update({
+              verification_status: 'requested'
+          }).eq('id', restoId);
+
+          if (error) throw error;
+
+          toast.success("Demande de vérification envoyée !");
+          fetchRestaurants();
+      } catch (error: any) {
+          toast.error("Erreur lors de l'envoi de la demande");
+      } finally {
+          setLoading(false);
+      }
+  };
+
   const deleteRestaurant = async (restoId: string) => {
       if (!window.confirm("Supprimer ce restaurant ? Cette action est irréversible et supprimera tout le menu et les commandes associées.")) return;
       try {
@@ -878,6 +898,15 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
                                 )}
                             </td>
                             <td className="px-6 py-4 text-right space-x-2">
+                                {!r.isVerified && (
+                                    <button
+                                        onClick={() => requestVerification(r.id)}
+                                        className="p-2 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                                        title="Demander la vérification"
+                                    >
+                                        <ShieldAlert size={18} />
+                                    </button>
+                                )}
                                 <button className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                     <Eye size={18} />
                                 </button>

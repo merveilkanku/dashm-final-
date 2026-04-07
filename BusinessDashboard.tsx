@@ -1621,11 +1621,12 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
       const twoMonthsAgo = new Date();
       twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
       const isMandatory = createdAt < twoMonthsAgo;
+      const isRequested = restaurant.verificationStatus === 'requested';
 
       return (
       <div className="space-y-6 animate-in fade-in duration-500">
-          {!isVerified && (
-              <div className={`p-4 rounded-xl border flex items-start gap-4 ${isMandatory ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300' : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300'}`}>
+          {!isVerified && (isMandatory || isRequested) && (
+              <div className={`p-4 rounded-xl border flex items-start gap-4 ${isMandatory || isRequested ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300' : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300'}`}>
                   <AlertTriangle size={24} className="flex-shrink-0 mt-1" />
                   <div>
                       <h4 className="font-bold text-lg mb-1">
@@ -1637,7 +1638,10 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                               : 'Obtenez un badge de vérification pour rassurer vos clients et débloquer la possibilité de publier des annonces visibles par tous sur le réseau.'}
                       </p>
                       <button 
-                          onClick={() => toast.success("Votre demande de vérification a été envoyée. Notre équipe vous contactera sous 48h.")}
+                          onClick={() => {
+                              setActiveView('settings');
+                              setSettingsSubView('verification');
+                          }}
                           className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${isMandatory ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-white'}`}
                       >
                           Demander la vérification
@@ -1883,10 +1887,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         <Upload size={16} className="mr-2"/>
                         {newItemImageFile ? 'Photo sélectionnée' : 'Choisir une photo'}
                     </button>
-                    <input id="new-item-image" type="file" accept="image/*" className="hidden" onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setNewItemImageFile(file);
-                    }} />
+                    <input id="new-item-image" type="file" accept="image/*" className="hidden" onChange={(e) => setNewItemImageFile(e.target.files?.[0] || null)} />
                     {newItemImageFile && <span className="text-xs text-brand-600">{newItemImageFile.name}</span>}
                  </div>
             </div>
@@ -2057,33 +2058,27 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport</label>
-                            <button
-                                type="button"
-                                disabled={restaurant.verificationStatus === 'pending'}
-                                onClick={async () => {
-                                    if (Capacitor.isNativePlatform()) {
+                            {Capacitor.isNativePlatform() ? (
+                                <button
+                                    type="button"
+                                    disabled={restaurant.verificationStatus === 'pending'}
+                                    onClick={async () => {
                                         const file = await pickFile(['image/*', 'application/pdf']);
                                         if (file) setIdCardFile(file);
-                                    } else {
-                                        document.getElementById('id-card-upload')?.click();
-                                    }
-                                }}
-                                className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left text-sm font-medium disabled:opacity-50 flex items-center"
-                            >
-                                <Upload size={16} className="mr-2" />
-                                {idCardFile ? `Fichier: ${idCardFile.name}` : "Sélectionner un fichier (Image ou PDF)"}
-                            </button>
-                            <input 
-                                id="id-card-upload"
-                                type="file" 
-                                accept="image/*,application/pdf"
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) setIdCardFile(file);
-                                }}
-                                disabled={restaurant.verificationStatus === 'pending'}
-                            />
+                                    }}
+                                    className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left text-sm font-medium disabled:opacity-50"
+                                >
+                                    {idCardFile ? `Fichier: ${idCardFile.name}` : "Sélectionner un fichier (Image ou PDF)"}
+                                </button>
+                            ) : (
+                                <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                                    onChange={e => setIdCardFile(e.target.files?.[0] || null)}
+                                    disabled={restaurant.verificationStatus === 'pending'}
+                                />
+                            )}
                         </div>
                         {restaurant.verificationStatus !== 'pending' && (
                             <button 
@@ -3047,10 +3042,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                                     <Upload size={16} className="mr-2"/>
                                     {coverImageFile ? 'Image sélectionnée' : 'Uploader une image'}
                                 </button>
-                                <input id="cover-image-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) setCoverImageFile(file);
-                                }} />
+                                <input id="cover-image-upload" type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
                             </div>
                         </div>
 

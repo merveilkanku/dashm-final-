@@ -3,17 +3,16 @@ import { FilePicker } from '@capawesome/capacitor-file-picker';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
 
+/**
+ * Picks an image from the camera or gallery.
+ * Optimized for large files by using webPath and fetch.
+ */
 export const pickImage = async () => {
   if (!Capacitor.isNativePlatform()) {
-    return null; // Fallback to HTML input on web
+    return null; // Fallback to HTML input handled by the component
   }
 
   try {
-    const permissions = await Camera.checkPermissions();
-    if (permissions.camera !== 'granted' || permissions.photos !== 'granted') {
-      await Camera.requestPermissions();
-    }
-
     const photo = await Camera.getPhoto({
       quality: 90,
       allowEditing: false,
@@ -33,7 +32,11 @@ export const pickImage = async () => {
   }
 };
 
-export const pickFile = async (mimeTypes: string[] = ['application/pdf', 'image/*']) => {
+/**
+ * Picks a file (PDF, Video, etc.) from the device.
+ * Optimized for large files by avoiding base64 conversion (atob).
+ */
+export const pickFile = async (mimeTypes: string[] = ['application/pdf', 'image/*', 'video/*']) => {
   if (!Capacitor.isNativePlatform()) {
     return null;
   }
@@ -41,21 +44,17 @@ export const pickFile = async (mimeTypes: string[] = ['application/pdf', 'image/
   try {
     const result = await FilePicker.pickFiles({
       types: mimeTypes,
-      readData: true
+      readData: false // DO NOT read data as base64 to avoid crashes on large files
     });
 
     if (result.files && result.files.length > 0) {
       const file = result.files[0];
-      if (file.data) {
-          // Convert base64 to blob if needed, but FilePicker usually gives us enough
-          // However, to be compatible with existing code expecting a File object:
-          const byteCharacters = atob(file.data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: file.mimeType });
+
+      // On native platform, we use the path and convert it to a fetchable source
+      if (file.path) {
+          const webPath = Capacitor.convertFileSrc(file.path);
+          const response = await fetch(webPath);
+          const blob = await response.blob();
           return new File([blob], file.name, { type: file.mimeType });
       }
     }
@@ -72,9 +71,7 @@ export const getCurrentLocation = async () => {
         if (permission.location !== 'granted') {
             await Geolocation.requestPermissions();
         }
-        const coordinates = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: true
-        });
+        const coordinates = await Geolocation.getCurrentPosition();
         return {
             lat: coordinates.coords.latitude,
             lng: coordinates.coords.longitude

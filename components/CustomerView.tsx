@@ -1622,6 +1622,11 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                             </p>
                             <button 
                                 onClick={() => {
+                                    // Set a flag for AuthScreen to open in delivery signup mode
+                                    localStorage.setItem('dashmeals_auth_action', JSON.stringify({
+                                        mode: 'signup',
+                                        role: 'delivery'
+                                    }));
                                     // Logout and redirect to signup with delivery role
                                     supabase.auth.signOut().then(() => {
                                         window.location.reload();
