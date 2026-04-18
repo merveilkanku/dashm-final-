@@ -14,6 +14,9 @@ import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { Camera } from '@capacitor/camera';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
 const OfflineBanner = ({ isSupabaseReachable }: { isSupabaseReachable: boolean }) => (!isSupabaseReachable) ? (
   <div className="bg-red-600 text-white text-xs font-bold px-4 py-1 text-center flex justify-center items-center sticky top-0 z-50">
@@ -78,12 +81,32 @@ function App() {
 
   // Initialisation et écoute de la session
   useEffect(() => {
+    // Handle Native Permissions
+    const requestNativePermissions = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await Camera.requestPermissions();
+          await Geolocation.requestPermissions();
+        } catch (err) {
+          console.warn("Permissions request failed", err);
+        }
+      }
+    };
+
+    requestNativePermissions();
+
     // Handle Deep Links for OAuth
     const setupDeepLinks = async () => {
-      CapApp.addListener('appUrlOpen', async (event: any) => {
-        console.log('App opened with URL:', event.url);
+      const handleUrl = async (urlStr: string) => {
+        console.log('Handling URL:', urlStr);
+        const url = new URL(urlStr);
 
-        const url = new URL(event.url);
+        // Check if it's one of our expected callback URLs
+        if (!urlStr.includes('com.dashmeals.android://callback') &&
+            !urlStr.includes('com.dashmeals.android://login-callback')) {
+          return;
+        }
+
         // Supabase OAuth redirects often put tokens in the hash
         let params = new URLSearchParams(url.search);
 
@@ -97,11 +120,11 @@ function App() {
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
 
-        if (accessToken && refreshToken) {
+        if (accessToken) {
           console.log('Tokens found in deep link, setting session...');
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: refreshToken,
+            refresh_token: refreshToken || '',
           });
 
           if (error) {
@@ -117,7 +140,18 @@ function App() {
         await Browser.close().catch(() => {
           // Ignore error if browser was already closed
         });
+      };
+
+      // Listen for appUrlOpen event
+      CapApp.addListener('appUrlOpen', async (event: any) => {
+        handleUrl(event.url);
       });
+
+      // Check if app was opened by a URL initially
+      const launchUrl = await CapApp.getLaunchUrl();
+      if (launchUrl?.url) {
+        handleUrl(launchUrl.url);
+      }
     };
 
     setupDeepLinks();

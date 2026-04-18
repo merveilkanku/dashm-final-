@@ -370,22 +370,24 @@ export const CartDrawer: React.FC<Props> = ({
                               </div>
                             )}
                           </button>
-                          <input 
-                            id="payment-proof-upload"
-                            type="file" 
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setPaymentProof(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                          />
+                          {!Capacitor.isNativePlatform() && (
+                            <input
+                              id="payment-proof-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setPaymentProof(reader.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>

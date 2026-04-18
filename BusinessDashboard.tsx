@@ -1887,7 +1887,9 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         <Upload size={16} className="mr-2"/>
                         {newItemImageFile ? 'Photo sélectionnée' : 'Choisir une photo'}
                     </button>
-                    <input id="new-item-image" type="file" accept="image/*" className="hidden" onChange={(e) => setNewItemImageFile(e.target.files?.[0] || null)} />
+                    {!Capacitor.isNativePlatform() && (
+                        <input id="new-item-image" type="file" accept="image/*" className="hidden" onChange={(e) => setNewItemImageFile(e.target.files?.[0] || null)} />
+                    )}
                     {newItemImageFile && <span className="text-xs text-brand-600">{newItemImageFile.name}</span>}
                  </div>
             </div>
@@ -2058,23 +2060,28 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Photo Carte d'Identité / Passeport</label>
-                            {Capacitor.isNativePlatform() ? (
-                                <button
-                                    type="button"
-                                    disabled={restaurant.verificationStatus === 'pending'}
-                                    onClick={async () => {
+                            <button
+                                type="button"
+                                disabled={restaurant.verificationStatus === 'pending'}
+                                onClick={async () => {
+                                    if (Capacitor.isNativePlatform()) {
                                         const file = await pickFile(['image/*', 'application/pdf']);
                                         if (file) setIdCardFile(file);
-                                    }}
-                                    className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left text-sm font-medium disabled:opacity-50"
-                                >
-                                    {idCardFile ? `Fichier: ${idCardFile.name}` : "Sélectionner un fichier (Image ou PDF)"}
-                                </button>
-                            ) : (
+                                    } else {
+                                        document.getElementById('verification-id-card')?.click();
+                                    }
+                                }}
+                                className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left text-sm font-medium disabled:opacity-50"
+                            >
+                                <Upload size={16} className="inline mr-2" />
+                                {idCardFile ? `Fichier: ${idCardFile.name}` : "Sélectionner un fichier (Image ou PDF)"}
+                            </button>
+                            {!Capacitor.isNativePlatform() && (
                                 <input
+                                    id="verification-id-card"
                                     type="file"
                                     accept="image/*,application/pdf"
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                                    className="hidden"
                                     onChange={e => setIdCardFile(e.target.files?.[0] || null)}
                                     disabled={restaurant.verificationStatus === 'pending'}
                                 />
@@ -3042,7 +3049,9 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                                     <Upload size={16} className="mr-2"/>
                                     {coverImageFile ? 'Image sélectionnée' : 'Uploader une image'}
                                 </button>
-                                <input id="cover-image-upload" type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
+                                {!Capacitor.isNativePlatform() && (
+                                    <input id="cover-image-upload" type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
+                                )}
                             </div>
                         </div>
 
@@ -4123,20 +4132,22 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                                 <Upload size={24} className={`mb-2 ${promoFile ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}/>
                                 <span className="text-sm">{promoFile ? promoFile.name : (newPromoType === 'video' ? t('upload_video') : t('upload_image'))}</span>
                             </button>
-                            <input
-                                id="promo-upload"
-                                type="file"
-                                accept={newPromoType === 'video' ? "video/*" : "image/*"}
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        setPromoFile(file);
-                                        setNewPromoUrl('');
-                                        setPromoError(null);
-                                    }
-                                }}
-                            />
+                            {!Capacitor.isNativePlatform() && (
+                                <input
+                                    id="promo-upload"
+                                    type="file"
+                                    accept={newPromoType === 'video' ? "video/*" : "image/*"}
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            setPromoFile(file);
+                                            setNewPromoUrl('');
+                                            setPromoError(null);
+                                        }
+                                    }}
+                                />
+                            )}
                         </div>
 
                         {(promoFile || newPromoUrl) && (
