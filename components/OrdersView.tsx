@@ -305,16 +305,18 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                             <Camera size={16} className="mr-2" />
                                             {order.paymentStatus === 'failed' ? "Uploader une nouvelle preuve" : "Changer la preuve de paiement"}
                                         </button>
-                                        <input 
-                                            id={`reupload-proof-${order.id}`}
-                                            type="file" 
-                                            accept="image/*" 
-                                            className="hidden" 
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) handleReuploadPaymentProof(order.id, file);
-                                            }} 
-                                        />
+                                        {!Capacitor.isNativePlatform() && (
+                                            <input
+                                                id={`reupload-proof-${order.id}`}
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) handleReuploadPaymentProof(order.id, file);
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -542,7 +544,9 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                                         </div>
                                     )}
                                 </button>
-                                <input id="confirm-proof-upload" type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                                {!Capacitor.isNativePlatform() && (
+                                    <input id="confirm-proof-upload" type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                                )}
                             </div>
                         </div>
 
